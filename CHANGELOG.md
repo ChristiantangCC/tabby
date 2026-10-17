@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Switching to full-screen windows of apps like Chrome is more reliable: Tabby now finds their window anywhere in the app, not just among the first few.
+- Documented the one case macOS won't allow: switching to a full-screen window while the same app has a window on your current Space.
+
 ## 0.2.2
 
 - Windows are listed in the order you last used them, across all screens, however you switched (Tabby, a click, the Dock or ⌘Tab).
