@@ -9,6 +9,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var permissionTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if DemoMode.isOn {
+            MainActor.assumeIsolated { startDemo() }
+            return
+        }
         setUpStatusItem()
         wireHotKeys()
         startHotKeysWhenTrusted()
@@ -31,6 +35,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings()
         return true
+    }
+
+    /// Wallpaper window + switcher with fake apps, centred on the main screen.
+    /// Prints the rect in `screencapture -R` coordinates so a script can grab exactly that area.
+    private var demoWindow: NSWindow?
+
+    @MainActor
+    private func startDemo() {
+        guard let screen = NSScreen.main else { return }
+        let size = DemoMode.canvas
+        let rect = NSRect(
+            x: screen.frame.midX - size.width / 2,
+            y: screen.frame.midY - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+        let window = NSWindow(contentRect: rect, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue - 1)
+        window.contentView = NSHostingView(rootView: DemoWallpaper())
+        window.orderFrontRegardless()
+        demoWindow = window
+
+        let selected = Int(UserDefaults.standard.string(forKey: "demoSelected") ?? "") ?? 1
+        switcher.showDemo(items: DemoMode.items(), thumbs: DemoMode.thumbnails(), in: rect, selected: selected)
+
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        print("RECT \(Int(rect.minX)),\(Int(primaryHeight - rect.maxY)),\(Int(rect.width)),\(Int(rect.height))")
+        fflush(stdout)
     }
 
     private func setUpStatusItem() {

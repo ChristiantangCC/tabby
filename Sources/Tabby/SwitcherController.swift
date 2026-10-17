@@ -131,6 +131,21 @@ final class SwitcherController {
         }
     }
 
+    /// Shows fake windows inside a fixed rect, for README screenshots.
+    func showDemo(items: [WindowItem], thumbs: [CGWindowID: NSImage], in rect: NSRect, selected: Int) {
+        isActive = true
+        isPreview = true
+        model.appeared = false
+        model.items = items
+        model.thumbs = thumbs
+        model.selected = selected
+        model.spin = Double(selected)
+        panel.appearance = Prefs.currentAppearance.nsAppearance
+        panel.setFrame(rect, display: false)
+        panel.orderFrontRegardless()
+        model.appeared = true
+    }
+
     func step(_ delta: Int) {
         guard isActive else { return }
         model.step(delta)
