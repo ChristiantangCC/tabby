@@ -16,6 +16,18 @@ Hold ⌥, tap Tab, see every window as a live picture, let go to switch. That's 
 
 macOS's own ⌘Tab switches between apps, not windows. Tools like AltTab fix that, but grow a settings screen for every edge case. Tabby does one thing: switch windows, quickly, and look nice doing it.
 
+## Small and light
+
+| | |
+| --- | --- |
+| **Binary** | 1.3 MB |
+| **App bundle** | 2.2 MB (most of it is the icon), 1.2 MB zipped |
+| **Memory, idle** | ~40 MB |
+| **Memory, after switching** | ~60 MB, including cached thumbnails |
+| **Dependencies** | None. Only Apple frameworks. |
+
+Measured on Apple Silicon with macOS 26, using `footprint`.
+
 ## Layouts
 
 | Layout | What it looks like |
