@@ -170,6 +170,7 @@ final class SwitcherController {
         let preview = isPreview
         close()
         if !preview {
+            FocusTracker.shared.mark(item.id)
             WindowSource.focus(item)
         }
     }

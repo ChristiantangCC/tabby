@@ -132,10 +132,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func startHotKeysWhenTrusted() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        if AXIsProcessTrustedWithOptions(options), HotKeys.shared.start() { return }
+        if AXIsProcessTrustedWithOptions(options), HotKeys.shared.start() {
+            FocusTracker.shared.start()
+            return
+        }
 
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] timer in
             if AXIsProcessTrusted(), HotKeys.shared.start() {
+                FocusTracker.shared.start()
                 timer.invalidate()
                 self?.permissionTimer = nil
             }

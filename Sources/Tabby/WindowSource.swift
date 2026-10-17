@@ -138,11 +138,39 @@ enum WindowSource {
             }
         }
 
-        let order = zOrder()
-        let rank = { (item: WindowItem) -> Int in
-            order[item.id] ?? (item.isMinimized ? 2_000_000 : 1_000_000)
+        return ordered(items, recency: FocusTracker.shared.recency, zOrder: zOrder())
+    }
+
+    /// Most recently used first. Windows Tabby hasn't seen focused yet follow in stacking order,
+    /// and minimized windows go last.
+    static func ordered(_ items: [WindowItem], recency: [CGWindowID: UInt64], zOrder: [CGWindowID: Int]) -> [WindowItem] {
+        func rank(_ item: WindowItem) -> (Int, Int64) {
+            if item.isMinimized { return (2, Int64(zOrder[item.id] ?? Int.max)) }
+            if let used = recency[item.id] { return (0, -Int64(used)) }
+            return (1, Int64(zOrder[item.id] ?? Int.max))
         }
-        return items.sorted { rank($0) < rank($1) }
+        return items.enumerated()
+            .sorted { lhs, rhs in
+                let (a, b) = (rank(lhs.element), rank(rhs.element))
+                return a != b ? a < b : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+    }
+
+    /// The window-server ID behind an Accessibility window element.
+    static func windowID(of element: AXUIElement) -> CGWindowID? {
+        var windowID: CGWindowID = 0
+        guard Private.getWindow?(element, &windowID) == .success, windowID != 0 else { return nil }
+        return windowID
+    }
+
+    /// Normal app windows currently on screen, front to back.
+    static func onScreenWindowIDs() -> [CGWindowID] {
+        let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] ?? []
+        return list.compactMap { info in
+            info[kCGWindowLayer as String] as? Int == 0 ? info[kCGWindowNumber as String] as? CGWindowID : nil
+        }
     }
 
     /// Asks every app for its windows in parallel, so one slow app doesn't hold up the rest.
