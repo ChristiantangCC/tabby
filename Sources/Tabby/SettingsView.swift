@@ -64,6 +64,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.speed) private var speed = SwitchSpeed.fast
 
     @AppStorage(Prefs.checkUpdates) private var checkUpdates = true
+    @AppStorage(Prefs.highlight) private var highlight = true
     @ObservedObject private var updates = UpdateChecker.shared
 
     @State private var page: SettingsPage = .layout
@@ -218,6 +219,10 @@ struct SettingsView: View {
                 RowDivider()
                 SettingRow("Show window titles") {
                     Toggle("", isOn: $showTitles).toggleStyle(.switch).labelsHidden()
+                }
+                RowDivider()
+                SettingRow("Highlight the selected window on screen") {
+                    Toggle("", isOn: $highlight).toggleStyle(.switch).labelsHidden()
                 }
             }
         }

@@ -13,6 +13,7 @@ struct SwitcherRoot: View {
     @AppStorage(Prefs.dim) private var dim = true
     @AppStorage(Prefs.titles) private var showTitles = true
     @AppStorage(Prefs.speed) private var speed = SwitchSpeed.fast
+    @AppStorage(Prefs.highlight) private var highlight = true
 
     private var theme: Theme {
         Theme(accent: Color(hex: accentHex), size: size, surface: surface, showTitles: showTitles, speed: speed)
@@ -20,17 +21,24 @@ struct SwitcherRoot: View {
 
     var body: some View {
         GeometryReader { geo in
+            let spot = highlight ? model.highlightFrame(in: geo.size) : nil
             ZStack {
-                Backdrop(layout: layout, dim: dim, accent: theme.accent)
+                Backdrop(layout: layout, dim: dim, accent: theme.accent, hole: spot)
                     .opacity(model.appeared ? 1 : 0)
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onDismiss)
+
+                if let spot {
+                    WindowHighlight(frame: spot, accent: theme.accent)
+                        .opacity(model.appeared ? 1 : 0)
+                }
 
                 layoutView(bounds: geo.size)
                     .scaleEffect(model.appeared ? 1 : 0.94)
                     .opacity(model.appeared ? 1 : 0)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .animation(theme.speed.spring(0.32, 0.86), value: spot)
         }
         .ignoresSafeArea()
     }
@@ -54,8 +62,26 @@ struct Backdrop: View {
     let layout: LayoutStyle
     let dim: Bool
     let accent: Color
+    /// Spot left undimmed so the real selected window shows through.
+    var hole: CGRect? = nil
 
     var body: some View {
+        content
+            .mask {
+                ZStack {
+                    Rectangle()
+                    if let hole {
+                        RoundedRectangle(cornerRadius: WindowHighlight.corner, style: .continuous)
+                            .frame(width: hole.width, height: hole.height)
+                            .position(x: hole.midX, y: hole.midY)
+                            .blendMode(.destinationOut)
+                    }
+                }
+                .compositingGroup()
+            }
+    }
+
+    private var content: some View {
         ZStack {
             if dim {
                 Color.black.opacity(layout == .timeMachine ? 0.55 : 0.32)
@@ -70,6 +96,22 @@ struct Backdrop: View {
                 StarField()
             }
         }
+    }
+}
+
+/// Accent outline around the selected window's real position on screen.
+struct WindowHighlight: View {
+    static let corner: CGFloat = 12
+    let frame: CGRect
+    let accent: Color
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Self.corner, style: .continuous)
+            .strokeBorder(accent, lineWidth: 3)
+            .shadow(color: accent.opacity(0.8), radius: 14)
+            .frame(width: frame.width, height: frame.height)
+            .position(x: frame.midX, y: frame.midY)
+            .allowsHitTesting(false)
     }
 }
 

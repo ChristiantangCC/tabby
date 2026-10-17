@@ -8,8 +8,20 @@ final class SwitcherModel: ObservableObject {
     @Published var spin: Double = 0
     @Published var thumbs: [CGWindowID: NSImage] = [:]
     @Published var appeared = false
+    /// Top-left of the screen the overlay is on, in window-server coordinates.
+    @Published var screenOrigin: CGPoint = .zero
 
     var current: WindowItem? { items.indices.contains(selected) ? items[selected] : nil }
+
+    /// The selected window's frame inside the overlay, or nil if it isn't on this screen.
+    func highlightFrame(in bounds: CGSize) -> CGRect? {
+        guard let item = current, !item.isMinimized, let frame = item.frame else { return nil }
+        let local = frame.offsetBy(dx: -screenOrigin.x, dy: -screenOrigin.y)
+        let visible = local.intersection(CGRect(origin: .zero, size: bounds))
+        // Mostly off this screen: an outline of a sliver would just be confusing.
+        guard !visible.isNull, visible.width * visible.height > local.width * local.height * 0.5 else { return nil }
+        return local
+    }
 
     func step(_ delta: Int) {
         let count = items.count
@@ -132,7 +144,7 @@ final class SwitcherController {
     }
 
     /// Shows fake windows inside a fixed rect, for README screenshots.
-    func showDemo(items: [WindowItem], thumbs: [CGWindowID: NSImage], in rect: NSRect, selected: Int) {
+    func showDemo(items: [WindowItem], thumbs: [CGWindowID: NSImage], in rect: NSRect, selected: Int, screenOrigin: CGPoint) {
         isActive = true
         isPreview = true
         model.appeared = false
@@ -140,6 +152,8 @@ final class SwitcherController {
         model.thumbs = thumbs
         model.selected = selected
         model.spin = Double(selected)
+        model.screenOrigin = screenOrigin
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 11)
         panel.appearance = Prefs.currentAppearance.nsAppearance
         panel.setFrame(rect, display: false)
         panel.orderFrontRegardless()
@@ -170,6 +184,8 @@ final class SwitcherController {
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         guard let screen else { return }
 
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        model.screenOrigin = CGPoint(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY)
         panel.appearance = Prefs.currentAppearance.nsAppearance
         panel.setFrame(screen.frame, display: false)
         panel.orderFrontRegardless()

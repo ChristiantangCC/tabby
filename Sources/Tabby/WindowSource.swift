@@ -15,6 +15,8 @@ struct WindowItem: Identifiable, Equatable {
     let isMinimized: Bool
     /// Width ÷ height of the real window, so tiles can take its shape.
     var aspect: CGFloat = 1.6
+    /// Where the window really is, in window-server coordinates (origin top-left of the main display).
+    var frame: CGRect?
 
     var displayTitle: String { title.isEmpty ? appName : title }
 
@@ -73,7 +75,13 @@ enum WindowSource {
                 element: nil,
                 localWindow: window,
                 isMinimized: window.isMiniaturized,
-                aspect: window.frame.height > 0 ? window.frame.width / window.frame.height : 1.6
+                aspect: window.frame.height > 0 ? window.frame.width / window.frame.height : 1.6,
+                frame: CGRect(
+                    x: window.frame.minX,
+                    y: (NSScreen.screens.first?.frame.height ?? 0) - window.frame.maxY,
+                    width: window.frame.width,
+                    height: window.frame.height
+                )
             )
         }
 
@@ -83,10 +91,11 @@ enum WindowSource {
         cacheLock.unlock()
         items += fresh ?? otherAppWindows()
 
-        let shapes = windowAspects()
+        let frames = windowFrames()
         for index in items.indices {
-            if let aspect = shapes[items[index].id] {
-                items[index].aspect = aspect
+            if let frame = frames[items[index].id] {
+                items[index].frame = frame
+                items[index].aspect = frame.width / frame.height
             }
         }
 
@@ -176,19 +185,19 @@ enum WindowSource {
         _ = post(&psn, &bytes)
     }
 
-    /// Width ÷ height of every window, minimized and off-screen ones included.
-    private static func windowAspects() -> [CGWindowID: CGFloat] {
+    /// Position and size of every window, minimized and off-screen ones included.
+    private static func windowFrames() -> [CGWindowID: CGRect] {
         let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] ?? []
-        var aspects: [CGWindowID: CGFloat] = [:]
+        var frames: [CGWindowID: CGRect] = [:]
         for info in list {
             guard let number = info[kCGWindowNumber as String] as? CGWindowID,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: dict),
                   rect.height > 0 else { continue }
-            aspects[number] = rect.width / rect.height
+            frames[number] = rect
         }
-        return aspects
+        return frames
     }
 
     /// Front-to-back position of every on-screen window.
