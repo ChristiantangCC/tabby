@@ -22,8 +22,8 @@ macOS's own ⌘Tab switches between apps, not windows. Tools like AltTab fix tha
 
 | | |
 | --- | --- |
-| **Binary** | 1.3 MB |
-| **App bundle** | 2.2 MB (most of it is the icon), 1.2 MB zipped |
+| **Download** | 1.3 MB zipped |
+| **App** | 3.9 MB, universal (Intel + Apple Silicon) |
 | **Memory, idle** | ~40 MB |
 | **Memory, after switching** | ~60 MB, including cached thumbnails |
 | **Dependencies** | None. Only Apple frameworks. |
@@ -34,7 +34,7 @@ Measured on Apple Silicon with macOS 26, using `footprint`.
 
 | | Switches windows | Looks like | Price | Open source | App size |
 | --- | :---: | --- | --- | :---: | --- |
-| **Tabby** | ✅ | Live thumbnails, 6 layouts | Free | ✅ MIT | 2.1 MB |
+| **Tabby** | ✅ | Live thumbnails, 6 layouts | Free | ✅ MIT | 3.9 MB |
 | [AltTab](https://alt-tab.app) 11.9 | ✅ | Live thumbnails; app icons and titles styles in Pro | Free, Pro $9.99 | ✅ GPL-3.0 | 13 MB |
 | [Witch](https://manytricks.com/witch/) 4.7 | ✅ | Window list | $14 | ❌ | — |
 | [Contexts](https://contexts.co) 3.9 | ✅ | Window list and sidebar | $9.99 | ❌ | — |
@@ -43,7 +43,7 @@ Measured on Apple Silicon with macOS 26, using `footprint`.
 
 Pick something else if you need more than switching. AltTab, Witch and Contexts all add window search, multiple shortcuts, per-app exceptions, and windows from other Spaces. Tabby leaves those out on purpose.
 
-Prices and versions are from each developer's site, October 2026. App sizes are measured on disk; AltTab ships a universal (Intel + Apple Silicon) binary, Tabby builds for your Mac's architecture only.
+Prices and versions are from each developer's site, October 2026. App sizes are measured on disk; both Tabby and AltTab ship universal (Intel + Apple Silicon) apps.
 
 ## Layouts
 
@@ -67,7 +67,20 @@ While the switcher is open: ⇧ goes backwards, arrow keys move, esc cancels, an
 
 ## Install
 
-Tabby isn't notarized yet, so build it yourself. You need Xcode or the Swift toolchain (Swift 5.10+).
+1. Download **[Tabby.zip](https://github.com/ChristiantangCC/tabby/releases/latest/download/Tabby.zip)** from the latest release, unzip it and move **Tabby** to Applications.
+2. Open it. macOS will say it can't verify the developer, because Tabby is signed with my own certificate rather than a paid Apple one.
+3. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Tabby. You only do this once.
+4. Grant the two permissions Tabby asks for:
+   - **Accessibility:** to catch the shortcut and focus windows
+   - **Screen Recording:** to draw window thumbnails
+
+   Settings → General has a **Grant…** button for each.
+
+Every release is signed with the same certificate, so updates keep both permissions. Tabby checks for new releases once a day and shows **Update available** in its menu and in Settings. You can turn that off in Settings → General.
+
+### Build from source
+
+You need the Swift toolchain (Swift 5.10+), from Xcode or the command line tools.
 
 ```sh
 git clone https://github.com/ChristiantangCC/tabby.git
@@ -75,14 +88,11 @@ cd tabby
 ./scripts/build.sh
 ```
 
-This builds `build/Tabby.app`, signs it (with your Apple Development certificate if you have one, otherwise ad-hoc) and copies it to `/Applications`. Pass `INSTALL=0` to skip the copy.
+This builds `build/Tabby.app`, signs it (with your Apple Development certificate if you have one, otherwise ad-hoc) and copies it to `/Applications`. Pass `INSTALL=0` to skip the copy, or `ARCHS="arm64 x86_64"` for a universal build. With an ad-hoc signature, macOS forgets both permissions after every rebuild.
 
-On first launch Tabby asks for two permissions:
+### Releasing
 
-- **Accessibility:** to catch the shortcut and focus windows
-- **Screen Recording:** to draw window thumbnails
-
-Settings → General has a **Grant…** button for each. With an ad-hoc signature, macOS forgets both after every rebuild.
+Bump `CFBundleShortVersionString` in `Resources/Info.plist`, add a matching `## <version>` section to `CHANGELOG.md`, and push to main. CI builds a universal app, signs it and publishes `Tabby.zip` as a GitHub release.
 
 ## How it works
 
