@@ -18,6 +18,39 @@ Hold ⌥, tap Tab, see every window as a live picture, let go to switch. That's 
 
 macOS's own ⌘Tab switches between apps, not windows. Tools like AltTab fix that, but grow a settings screen for every edge case. Tabby does one thing: switch windows, quickly, and look nice doing it.
 
+## Install
+
+1. Download **[Tabby.zip](https://github.com/ChristiantangCC/tabby/releases/latest/download/Tabby.zip)** from the latest release, unzip it and move **Tabby** to Applications.
+2. Open it. macOS will say it can't verify the developer, because Tabby is signed with my own certificate rather than a paid Apple one.
+3. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Tabby. You only do this once.
+4. Grant the two permissions Tabby asks for:
+   - **Accessibility:** to catch the shortcut and focus windows
+   - **Screen Recording:** to draw window thumbnails
+
+   Settings → General has a **Grant…** button for each.
+
+Every release is signed with the same certificate, so updates keep both permissions. Tabby checks for new releases once a day and shows **Update available** in its menu and in Settings. You can turn that off in Settings → General.
+
+## Layouts
+
+Six ways to lay out your windows. Pick one in Settings → Layout.
+
+| | |
+| --- | --- |
+| <img src="assets/grid.png" alt="Thumbnails layout" width="420"><br>**Thumbnails**: a grid of live pictures, each tile in its window's real shape | <img src="assets/coverFlow.png" alt="Cover Flow layout" width="420"><br>**Cover Flow**: a 3D shelf with reflections that flips past as you tab |
+| <img src="assets/deck.png" alt="Deck layout" width="420"><br>**Deck**: windows fanned out like a hand of cards; the selected one lifts up | <img src="assets/orbit.png" alt="Orbit layout" width="420"><br>**Orbit**: windows circle a large preview of the selected one |
+| <img src="assets/spotlight.png" alt="Spotlight layout" width="420"><br>**Spotlight**: one huge preview with a small strip of the rest | <img src="assets/timeMachine.png" alt="Time Machine layout" width="420"><br>**Time Machine**: windows stacked into the distance over a starfield |
+
+The screenshots use made-up apps. Run `.build/release/Tabby --demo -layout deck` to see the same demo.
+
+## Settings
+
+- **Layout:** one of the six above, plus size, animation speed and window titles
+- **Appearance:** light, dark or system; glass, solid or frameless surface; accent colour; dim the screen behind
+- **Shortcut:** ⌥Tab by default. Click it in Settings and press a new one.
+
+While the switcher is open: ⇧ goes backwards, arrow keys move, esc cancels, and releasing the modifier switches.
+
 ## Small and light
 
 | | |
@@ -45,38 +78,15 @@ Pick something else if you need more than switching. AltTab, Witch and Contexts 
 
 Prices and versions are from each developer's site, October 2026. App sizes are measured on disk; both Tabby and AltTab ship universal (Intel + Apple Silicon) apps.
 
-## Layouts
+## How it works
 
-Six ways to lay out your windows. Pick one in Settings → Layout.
+- Windows are listed through the Accessibility API, in parallel per app, starting the moment you press ⌥ so the list is usually ready before Tab lands.
+- Thumbnails come from ScreenCaptureKit, captured only as large as the layout draws them.
+- A window is focused with the same window-server calls AltTab and yabai use, so the exact window comes forward, not just its app.
 
-| | |
-| --- | --- |
-| <img src="assets/grid.png" alt="Thumbnails layout" width="420"><br>**Thumbnails**: a grid of live pictures, each tile in its window's real shape | <img src="assets/coverFlow.png" alt="Cover Flow layout" width="420"><br>**Cover Flow**: a 3D shelf with reflections that flips past as you tab |
-| <img src="assets/deck.png" alt="Deck layout" width="420"><br>**Deck**: windows fanned out like a hand of cards; the selected one lifts up | <img src="assets/orbit.png" alt="Orbit layout" width="420"><br>**Orbit**: windows circle a large preview of the selected one |
-| <img src="assets/spotlight.png" alt="Spotlight layout" width="420"><br>**Spotlight**: one huge preview with a small strip of the rest | <img src="assets/timeMachine.png" alt="Time Machine layout" width="420"><br>**Time Machine**: windows stacked into the distance over a starfield |
+Tabby only sees windows on the current Space.
 
-The screenshots use made-up apps. Run `.build/release/Tabby --demo -layout deck` to see the same demo.
-
-## Settings
-
-- **Layout:** one of the six above, plus size, animation speed and window titles
-- **Appearance:** light, dark or system; glass, solid or frameless surface; accent colour; dim the screen behind
-- **Shortcut:** ⌥Tab by default. Click it in Settings and press a new one.
-
-While the switcher is open: ⇧ goes backwards, arrow keys move, esc cancels, and releasing the modifier switches.
-
-## Install
-
-1. Download **[Tabby.zip](https://github.com/ChristiantangCC/tabby/releases/latest/download/Tabby.zip)** from the latest release, unzip it and move **Tabby** to Applications.
-2. Open it. macOS will say it can't verify the developer, because Tabby is signed with my own certificate rather than a paid Apple one.
-3. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Tabby. You only do this once.
-4. Grant the two permissions Tabby asks for:
-   - **Accessibility:** to catch the shortcut and focus windows
-   - **Screen Recording:** to draw window thumbnails
-
-   Settings → General has a **Grant…** button for each.
-
-Every release is signed with the same certificate, so updates keep both permissions. Tabby checks for new releases once a day and shows **Update available** in its menu and in Settings. You can turn that off in Settings → General.
+## Development
 
 ### Build from source
 
@@ -93,14 +103,6 @@ This builds `build/Tabby.app`, signs it (with your Apple Development certificate
 ### Releasing
 
 Bump `CFBundleShortVersionString` in `Resources/Info.plist`, add a matching `## <version>` section to `CHANGELOG.md`, and push to main. CI builds a universal app, signs it and publishes `Tabby.zip` as a GitHub release.
-
-## How it works
-
-- Windows are listed through the Accessibility API, in parallel per app, starting the moment you press ⌥ so the list is usually ready before Tab lands.
-- Thumbnails come from ScreenCaptureKit, captured only as large as the layout draws them.
-- A window is focused with the same window-server calls AltTab and yabai use, so the exact window comes forward, not just its app.
-
-Tabby only sees windows on the current Space.
 
 ## License
 
