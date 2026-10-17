@@ -290,14 +290,15 @@ enum WindowSource {
     }
 
     /// Finds the Accessibility handle of a window on another Space, which the app's normal window
-    /// list leaves out. Handles are built from a token (pid + "coco" + element number); the app's
-    /// windows have low element numbers, so we try those until one matches (AltTab does the same).
+    /// list leaves out. Handles are built from a token (pid + "coco" + element number), so we try
+    /// numbers until one matches (AltTab does the same). Chrome's full-screen window sat at #3824,
+    /// so the search goes well past that; it stops at the first match and takes ~16 ms per 1,000.
     private static func remoteElement(forWindow windowID: CGWindowID, pid: pid_t) -> AXUIElement? {
         guard let create = Private.createWithRemoteToken else { return nil }
         var token = Data(count: 20)
         withUnsafeBytes(of: pid) { token.replaceSubrange(0..<4, with: $0) }
         withUnsafeBytes(of: Int32(0x636f_636f)) { token.replaceSubrange(8..<12, with: $0) }
-        for elementID: UInt64 in 0..<1000 {
+        for elementID: UInt64 in 0..<50_000 {
             withUnsafeBytes(of: elementID) { token.replaceSubrange(12..<20, with: $0) }
             guard let element = create(token as CFData)?.takeRetainedValue() else { continue }
             if WindowSource.windowID(of: element) == windowID {
