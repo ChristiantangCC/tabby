@@ -30,6 +30,7 @@ private enum Private {
     typealias PostEvent = @convention(c) (UnsafeMutablePointer<ProcessSerialNumber>, UnsafeMutablePointer<UInt8>) -> CGError
     typealias GetPSN = @convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus
     typealias MainConnection = @convention(c) () -> Int32
+    typealias CreateWithRemoteToken = @convention(c) (CFData) -> Unmanaged<AXUIElement>?
     typealias CopyDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
     typealias CopySpacesForWindows = @convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?
 
@@ -46,6 +47,7 @@ private enum Private {
     static let postEvent: PostEvent? = load("SLPSPostEventRecordTo", skyLight)
     static let getPSN: GetPSN? = load("GetProcessForPID", defaultHandle)
     static let mainConnection: MainConnection? = load("SLSMainConnectionID", skyLight)
+    static let createWithRemoteToken: CreateWithRemoteToken? = load("_AXUIElementCreateWithRemoteToken", defaultHandle)
     static let copyDisplaySpaces: CopyDisplaySpaces? = load("SLSCopyManagedDisplaySpaces", skyLight)
     static let copySpacesForWindows: CopySpacesForWindows? = load("SLSCopySpacesForWindows", skyLight)
 }
@@ -265,7 +267,10 @@ enum WindowSource {
             window.makeKeyAndOrderFront(nil)
             return
         }
-        if item.isMinimized, let element = item.element {
+        // Windows on another Space (full screen) have no handle yet; without one macOS
+        // brings the app forward but stays on the current Space.
+        let element = item.element ?? remoteElement(forWindow: item.id, pid: item.pid)
+        if item.isMinimized, let element {
             AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
 
@@ -278,9 +283,28 @@ enum WindowSource {
         } else {
             NSRunningApplication(processIdentifier: item.pid)?.activate()
         }
-        if let element = item.element {
+        if let element {
+            AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue)
             AXUIElementPerformAction(element, kAXRaiseAction as CFString)
         }
+    }
+
+    /// Finds the Accessibility handle of a window on another Space, which the app's normal window
+    /// list leaves out. Handles are built from a token (pid + "coco" + element number); the app's
+    /// windows have low element numbers, so we try those until one matches (AltTab does the same).
+    private static func remoteElement(forWindow windowID: CGWindowID, pid: pid_t) -> AXUIElement? {
+        guard let create = Private.createWithRemoteToken else { return nil }
+        var token = Data(count: 20)
+        withUnsafeBytes(of: pid) { token.replaceSubrange(0..<4, with: $0) }
+        withUnsafeBytes(of: Int32(0x636f_636f)) { token.replaceSubrange(8..<12, with: $0) }
+        for elementID: UInt64 in 0..<1000 {
+            withUnsafeBytes(of: elementID) { token.replaceSubrange(12..<20, with: $0) }
+            guard let element = create(token as CFData)?.takeRetainedValue() else { continue }
+            if WindowSource.windowID(of: element) == windowID {
+                return element
+            }
+        }
+        return nil
     }
 
     /// Window-server event pair that makes one specific window key (same trick as yabai/AltTab).
