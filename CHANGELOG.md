@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The selected window's real position on screen is outlined and left undimmed while you tab. Turn it off in Settings → Layout.
+
 ## 0.1.0
 
 The first release.

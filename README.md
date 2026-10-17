@@ -41,11 +41,17 @@ Six ways to lay out your windows. Pick one in Settings → Layout.
 | <img src="assets/deck.png" alt="Deck layout" width="420"><br>**Deck**: windows fanned out like a hand of cards; the selected one lifts up | <img src="assets/orbit.png" alt="Orbit layout" width="420"><br>**Orbit**: windows circle a large preview of the selected one |
 | <img src="assets/spotlight.png" alt="Spotlight layout" width="420"><br>**Spotlight**: one huge preview with a small strip of the rest | <img src="assets/timeMachine.png" alt="Time Machine layout" width="420"><br>**Time Machine**: windows stacked into the distance over a starfield |
 
+### See where you're going
+
+While you tab, the selected window's real spot on screen stays bright and gets an accent outline, so you know exactly which window you'll land on. Turn it off in Settings → Layout.
+
+<img src="assets/highlight.png" alt="The switcher open over a dimmed desktop, with the selected window's real position outlined in blue" width="860">
+
 The screenshots use made-up apps. Run `.build/release/Tabby --demo -layout deck` to see the same demo.
 
 ## Settings
 
-- **Layout:** one of the six above, plus size, animation speed and window titles
+- **Layout:** one of the six above, plus size, animation speed, window titles and the on-screen highlight
 - **Appearance:** light, dark or system; glass, solid or frameless surface; accent colour; dim the screen behind
 - **Shortcut:** ⌥Tab by default. Click it in Settings and press a new one.
 
