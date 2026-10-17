@@ -10,6 +10,8 @@ Hold ⌥, tap Tab, see every window as a live picture, let go to switch. That's 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![macOS 14+](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey)
 
+<img src="assets/grid.png" alt="Tabby's Thumbnails layout: a glass panel of window thumbnails, one highlighted" width="860">
+
 </div>
 
 ## Why
@@ -30,14 +32,15 @@ Measured on Apple Silicon with macOS 26, using `footprint`.
 
 ## Layouts
 
-| Layout | What it looks like |
+Six ways to lay out your windows. Pick one in Settings → Layout.
+
+| | |
 | --- | --- |
-| **Thumbnails** | A grid of live window pictures, each tile in its window's real shape |
-| **Cover Flow** | A 3D shelf with reflections that flips past as you tab |
-| **Deck** | Your windows fanned out like a hand of cards; the selected one lifts up |
-| **Orbit** | Windows circle a large preview of the selected one |
-| **Spotlight** | One huge preview with a small strip of the rest |
-| **Time Machine** | Windows stacked into the distance over a starfield |
+| <img src="assets/grid.png" alt="Thumbnails layout" width="420"><br>**Thumbnails**: a grid of live pictures, each tile in its window's real shape | <img src="assets/coverFlow.png" alt="Cover Flow layout" width="420"><br>**Cover Flow**: a 3D shelf with reflections that flips past as you tab |
+| <img src="assets/deck.png" alt="Deck layout" width="420"><br>**Deck**: windows fanned out like a hand of cards; the selected one lifts up | <img src="assets/orbit.png" alt="Orbit layout" width="420"><br>**Orbit**: windows circle a large preview of the selected one |
+| <img src="assets/spotlight.png" alt="Spotlight layout" width="420"><br>**Spotlight**: one huge preview with a small strip of the rest | <img src="assets/timeMachine.png" alt="Time Machine layout" width="420"><br>**Time Machine**: windows stacked into the distance over a starfield |
+
+The screenshots use made-up apps. Run `.build/release/Tabby --demo -layout deck` to see the same demo.
 
 ## Settings
 
