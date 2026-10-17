@@ -5,6 +5,7 @@ let package = Package(
     name: "Tabby",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "Tabby", path: "Sources/Tabby")
+        .executableTarget(name: "Tabby", path: "Sources/Tabby"),
+        .testTarget(name: "TabbyTests", dependencies: ["Tabby"], path: "Tests/TabbyTests"),
     ]
 )
