@@ -88,7 +88,7 @@ cd tabby
 ./scripts/build.sh
 ```
 
-This builds `build/Tabby.app`, signs it (with your Apple Development certificate if you have one, otherwise ad-hoc) and copies it to `/Applications`. Pass `INSTALL=0` to skip the copy, or `ARCHS="arm64 x86_64"` for a universal build. With an ad-hoc signature, macOS forgets both permissions after every rebuild.
+This builds `build/Tabby.app`, signs it (with your Apple Development certificate if you have one, otherwise ad-hoc) and copies it to `/Applications`. Pass `INSTALL=0` to skip the copy, or `ARCHS="arm64 x86_64"` for a universal build. Run the tests with `swift test`; CI runs them on every push and pull request. With an ad-hoc signature, macOS forgets both permissions after every rebuild.
 
 ### Releasing
 
