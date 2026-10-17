@@ -63,6 +63,9 @@ struct SettingsView: View {
     @AppStorage(Prefs.titles) private var showTitles = true
     @AppStorage(Prefs.speed) private var speed = SwitchSpeed.fast
 
+    @AppStorage(Prefs.checkUpdates) private var checkUpdates = true
+    @ObservedObject private var updates = UpdateChecker.shared
+
     @State private var page: SettingsPage = .layout
     @State private var accessibilityOK = AXIsProcessTrusted()
     @State private var screenOK = CGPreflightScreenCaptureAccess()
@@ -114,6 +117,12 @@ struct SettingsView: View {
             .padding(.horizontal, 10)
 
             Spacer()
+
+            if let release = updates.available {
+                UpdateCard(release: release, accent: accent)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
+            }
 
             Button("Quit Tabby") { NSApp.terminate(nil) }
                 .frame(maxWidth: .infinity)
@@ -298,6 +307,22 @@ struct SettingsView: View {
                         }
                 }
             }
+            SettingsGroup(title: "Updates") {
+                SettingRow("Check for updates automatically") {
+                    Toggle("", isOn: $checkUpdates)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .onChange(of: checkUpdates) { _, _ in updates.start() }
+                }
+                RowDivider()
+                SettingRow("Tabby \(UpdateChecker.currentVersion)") {
+                    if let release = updates.available {
+                        Button("Download \(release.version)") { NSWorkspace.shared.open(release.url) }
+                    } else {
+                        Button("Check Now") { updates.check() }
+                    }
+                }
+            }
             SettingsGroup(title: "Shortcut") {
                 SettingRow("Open switcher") { ShortcutRecorder(accent: accent) }
             }
@@ -343,6 +368,33 @@ private struct SidebarCard: View {
             .fill(scheme == .dark ? Color.black.opacity(0.28) : Color.black.opacity(0.05))
             .overlay(shape.strokeBorder(Color.primary.opacity(scheme == .dark ? 0.1 : 0.08), lineWidth: 1))
             .shadow(color: .black.opacity(scheme == .dark ? 0.25 : 0.06), radius: 6, y: 2)
+    }
+}
+
+/// Sidebar card shown while a newer release is out, like AltTab's upgrade card.
+private struct UpdateCard: View {
+    let release: UpdateChecker.Release
+    let accent: Color
+
+    var body: some View {
+        Button { NSWorkspace.shared.open(release.url) } label: {
+            VStack(spacing: 2) {
+                Text("Update available")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.85))
+                Text("Get Tabby \(release.version)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(LinearGradient(colors: [accent, accent.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

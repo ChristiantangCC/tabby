@@ -123,6 +123,7 @@ struct Shortcut: Equatable {
 }
 
 enum Prefs {
+    static let checkUpdates = "checkForUpdates"
     static let shortcutKey = "shortcutKeyCode"
     static let shortcutModifiers = "shortcutModifiers"
     static let shortcutLabel = "shortcutLabel"

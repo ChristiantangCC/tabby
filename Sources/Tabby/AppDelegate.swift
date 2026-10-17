@@ -1,9 +1,12 @@
 import Cocoa
 import SwiftUI
 import ScreenCaptureKit
+import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem?
+    private var updateItems: [NSMenuItem] = []
+    private var subscriptions = Set<AnyCancellable>()
     private let switcher = SwitcherController()
     private var settingsWindow: NSWindow?
     private var permissionTimer: Timer?
@@ -16,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setUpStatusItem()
         wireHotKeys()
         startHotKeysWhenTrusted()
+        watchForUpdates()
 
         if !CGPreflightScreenCaptureAccess() {
             CGRequestScreenCaptureAccess()
@@ -76,6 +80,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(withTitle: "Quit Tabby", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
+    }
+
+    /// Puts "Update available" at the top of the menu bar menu while a newer release exists.
+    private func watchForUpdates() {
+        UpdateChecker.shared.$available
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] release in self?.showUpdate(release) }
+            .store(in: &subscriptions)
+        UpdateChecker.shared.start()
+    }
+
+    private func showUpdate(_ release: UpdateChecker.Release?) {
+        guard let menu = statusItem?.menu else { return }
+        updateItems.forEach(menu.removeItem)
+        updateItems = []
+        guard let release else { return }
+
+        let item = NSMenuItem(title: "Update Available: Tabby \(release.version)…", action: #selector(openUpdate), keyEquivalent: "")
+        item.target = self
+        item.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
+        let separator = NSMenuItem.separator()
+        menu.insertItem(item, at: 0)
+        menu.insertItem(separator, at: 1)
+        updateItems = [item, separator]
+    }
+
+    @objc private func openUpdate() {
+        if let url = UpdateChecker.shared.available?.url {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func wireHotKeys() {
