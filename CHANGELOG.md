@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
 - Windows are listed in the order you last used them, across all screens, however you switched (Tabby, a click, the Dock or ⌘Tab).
 - Switching to a full-screen window now moves to its Space and brings it forward, instead of just selecting it.
