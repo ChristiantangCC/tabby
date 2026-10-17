@@ -55,16 +55,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             width: size.width,
             height: size.height
         )
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        let origin = CGPoint(x: rect.minX, y: primaryHeight - rect.maxY)
+        let thumbs = DemoMode.thumbnails()
+
         let window = NSWindow(contentRect: rect, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue - 1)
-        window.contentView = NSHostingView(rootView: DemoWallpaper())
+        // Above other apps' floating windows, so nothing else ends up in the screenshot.
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 10)
+        window.contentView = NSHostingView(rootView: DemoWallpaper(windows: thumbs))
         window.orderFrontRegardless()
         demoWindow = window
 
         let selected = Int(UserDefaults.standard.string(forKey: "demoSelected") ?? "") ?? 1
-        switcher.showDemo(items: DemoMode.items(), thumbs: DemoMode.thumbnails(), in: rect, selected: selected)
+        switcher.showDemo(items: DemoMode.items(canvasOrigin: origin), thumbs: thumbs, in: rect, selected: selected, screenOrigin: origin)
 
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
         print("RECT \(Int(rect.minX)),\(Int(primaryHeight - rect.maxY)),\(Int(rect.width)),\(Int(rect.height))")
         fflush(stdout)
     }

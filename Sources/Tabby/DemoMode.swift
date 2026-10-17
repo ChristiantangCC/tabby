@@ -38,8 +38,16 @@ enum DemoMode {
                 colors: [Color(hex: "#FF453A"), Color(hex: "#FF9F0A")], kind: .calendar, aspect: 1.55),
     ]
 
+    /// Where some of the fake windows sit on the fake desktop (inside `canvas`).
+    static let desktopFrames: [Int: CGRect] = [
+        0: CGRect(x: 70, y: 60, width: 640, height: 400),
+        1: CGRect(x: 760, y: 90, width: 560, height: 373),
+        3: CGRect(x: 150, y: 470, width: 560, height: 350),
+        5: CGRect(x: 880, y: 500, width: 400, height: 320),
+    ]
+
     @MainActor
-    static func items() -> [WindowItem] {
+    static func items(canvasOrigin: CGPoint) -> [WindowItem] {
         apps.enumerated().map { index, app in
             WindowItem(
                 id: CGWindowID(index + 1),
@@ -50,7 +58,8 @@ enum DemoMode {
                 element: nil,
                 localWindow: nil,
                 isMinimized: false,
-                aspect: app.aspect
+                aspect: app.aspect,
+                frame: desktopFrames[index]?.offsetBy(dx: canvasOrigin.x, dy: canvasOrigin.y)
             )
         }
     }
@@ -363,7 +372,27 @@ private struct FakeWindow: View {
 // MARK: - Wallpaper behind the demo
 
 struct DemoWallpaper: View {
+    /// Fake windows drawn on the desktop at `DemoMode.desktopFrames`.
+    var windows: [CGWindowID: NSImage] = [:]
+
     var body: some View {
+        ZStack(alignment: .topLeading) {
+            wallpaper
+            ForEach(DemoMode.desktopFrames.sorted { $0.key > $1.key }, id: \.key) { index, frame in
+                if let image = windows[CGWindowID(index + 1)] {
+                    Image(nsImage: image)
+                        .resizable()
+                        .frame(width: frame.width, height: frame.height)
+                        .shadow(color: .black.opacity(0.45), radius: 24, y: 12)
+                        .offset(x: frame.minX, y: frame.minY)
+                }
+            }
+        }
+        .frame(width: DemoMode.canvas.width, height: DemoMode.canvas.height, alignment: .topLeading)
+        .clipped()
+    }
+
+    private var wallpaper: some View {
         ZStack {
             Color(hex: "#0D1030")
             Circle().fill(Color(hex: "#5E5CE6")).frame(width: 900).offset(x: -500, y: -300).blur(radius: 160)
@@ -372,6 +401,5 @@ struct DemoWallpaper: View {
             Circle().fill(Color(hex: "#30D158")).frame(width: 520).offset(x: -460, y: 440).blur(radius: 180).opacity(0.7)
         }
         .frame(width: DemoMode.canvas.width, height: DemoMode.canvas.height)
-        .clipped()
     }
 }
