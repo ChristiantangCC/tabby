@@ -30,6 +30,21 @@ macOS's own ⌘Tab switches between apps, not windows. Tools like AltTab fix tha
 
 Measured on Apple Silicon with macOS 26, using `footprint`.
 
+## How it compares
+
+| | Switches windows | Looks like | Price | Open source | App size |
+| --- | :---: | --- | --- | :---: | --- |
+| **Tabby** | ✅ | Live thumbnails, 6 layouts | Free | ✅ MIT | 2.1 MB |
+| [AltTab](https://alt-tab.app) 11.9 | ✅ | Live thumbnails; app icons and titles styles in Pro | Free, Pro $9.99 | ✅ GPL-3.0 | 13 MB |
+| [Witch](https://manytricks.com/witch/) 4.7 | ✅ | Window list | $14 | ❌ | — |
+| [Contexts](https://contexts.co) 3.9 | ✅ | Window list and sidebar | $9.99 | ❌ | — |
+| [HyperSwitch](https://bahoom.com/hyperswitch) 0.3 | ✅ | Live thumbnails | Free (beta) | ❌ | — |
+| macOS ⌘Tab | ❌ apps only | App icons | Built in | ❌ | — |
+
+Pick something else if you need more than switching. AltTab, Witch and Contexts all add window search, multiple shortcuts, per-app exceptions, and windows from other Spaces. Tabby leaves those out on purpose.
+
+Prices and versions are from each developer's site, October 2026. App sizes are measured on disk; AltTab ships a universal (Intel + Apple Silicon) binary, Tabby builds for your Mac's architecture only.
+
 ## Layouts
 
 Six ways to lay out your windows. Pick one in Settings → Layout.
