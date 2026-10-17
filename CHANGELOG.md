@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1
 
 - Full-screen windows (the green button, like a maximised stream) now show up in the switcher, and switching to one jumps to its Space.
 
