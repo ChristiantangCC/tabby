@@ -29,6 +29,9 @@ private enum Private {
     typealias SetFront = @convention(c) (UnsafeMutablePointer<ProcessSerialNumber>, CGWindowID, UInt32) -> CGError
     typealias PostEvent = @convention(c) (UnsafeMutablePointer<ProcessSerialNumber>, UnsafeMutablePointer<UInt8>) -> CGError
     typealias GetPSN = @convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus
+    typealias MainConnection = @convention(c) () -> Int32
+    typealias CopyDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
+    typealias CopySpacesForWindows = @convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?
 
     private static let defaultHandle = UnsafeMutableRawPointer(bitPattern: -2)
     private static let skyLight = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
@@ -42,6 +45,38 @@ private enum Private {
     static let setFront: SetFront? = load("_SLPSSetFrontProcessWithOptions", skyLight)
     static let postEvent: PostEvent? = load("SLPSPostEventRecordTo", skyLight)
     static let getPSN: GetPSN? = load("GetProcessForPID", defaultHandle)
+    static let mainConnection: MainConnection? = load("SLSMainConnectionID", skyLight)
+    static let copyDisplaySpaces: CopyDisplaySpaces? = load("SLSCopyManagedDisplaySpaces", skyLight)
+    static let copySpacesForWindows: CopySpacesForWindows? = load("SLSCopySpacesForWindows", skyLight)
+}
+
+/// Full-screen windows live on their own Space, where Accessibility can't see them.
+private enum FullScreenSpaces {
+    /// Space type the window server uses for a full-screen (or Split View) Space.
+    private static let fullScreenType = 4
+    /// All Spaces, not just the current one.
+    private static let allSpacesMask: Int32 = 7
+
+    static func ids() -> Set<Int> {
+        guard let connection = Private.mainConnection?(),
+              let displays = Private.copyDisplaySpaces?(connection)?.takeRetainedValue() as? [[String: Any]]
+        else { return [] }
+        var ids = Set<Int>()
+        for display in displays {
+            for space in display["Spaces"] as? [[String: Any]] ?? [] where space["type"] as? Int == fullScreenType {
+                if let id = space["ManagedSpaceID"] as? Int { ids.insert(id) }
+            }
+        }
+        return ids
+    }
+
+    static func spaces(of windowID: CGWindowID) -> Set<Int> {
+        guard let connection = Private.mainConnection?(),
+              let spaces = Private.copySpacesForWindows?(connection, allSpacesMask, [NSNumber(value: windowID)] as CFArray)?
+                .takeRetainedValue() as? [Int]
+        else { return [] }
+        return Set(spaces)
+    }
 }
 
 enum WindowSource {
@@ -62,7 +97,7 @@ enum WindowSource {
         }
     }
 
-    /// Switchable windows on the current Space, most recently used first.
+    /// Switchable windows on the current Space plus full-screen windows, most recently used first.
     static func current(local: [NSWindow] = []) -> [WindowItem] {
         let me = getpid()
         var items: [WindowItem] = local.map { window in
@@ -91,7 +126,11 @@ enum WindowSource {
         cacheLock.unlock()
         items += fresh ?? otherAppWindows()
 
-        let frames = windowFrames()
+        let snapshot = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] ?? []
+        items += fullScreenWindows(in: snapshot, excluding: Set(items.map(\.id)))
+
+        let frames = windowFrames(in: snapshot)
         for index in items.indices {
             if let frame = frames[items[index].id] {
                 items[index].frame = frame
@@ -145,6 +184,51 @@ enum WindowSource {
         }
     }
 
+    /// Windows sitting on full-screen Spaces, which the Accessibility listing misses.
+    private static func fullScreenWindows(in snapshot: [[String: Any]], excluding known: Set<CGWindowID>) -> [WindowItem] {
+        let spaceIDs = FullScreenSpaces.ids()
+        guard !spaceIDs.isEmpty else { return [] }
+        let me = getpid()
+        let apps = Dictionary(
+            NSWorkspace.shared.runningApplications
+                .filter { $0.activationPolicy == .regular && $0.processIdentifier != me }
+                .map { ($0.processIdentifier, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        return snapshot.compactMap { info in
+            guard isAppWindow(info, appPIDs: Set(apps.keys), excluding: known),
+                  let id = info[kCGWindowNumber as String] as? CGWindowID,
+                  let pid = info[kCGWindowOwnerPID as String] as? pid_t,
+                  let app = apps[pid],
+                  !FullScreenSpaces.spaces(of: id).isDisjoint(with: spaceIDs)
+            else { return nil }
+            return WindowItem(
+                id: id,
+                pid: pid,
+                appName: app.localizedName ?? "App",
+                title: info[kCGWindowName as String] as? String ?? "",
+                icon: app.icon ?? NSWorkspace.shared.icon(for: .application),
+                element: nil,
+                localWindow: nil,
+                isMinimized: false
+            )
+        }
+    }
+
+    /// A normal, visible-sized window of a regular app that isn't listed yet.
+    /// Filters out the menu bar items, tooltips and invisible helper windows apps also own.
+    static func isAppWindow(_ info: [String: Any], appPIDs: Set<pid_t>, excluding known: Set<CGWindowID>) -> Bool {
+        guard let id = info[kCGWindowNumber as String] as? CGWindowID, !known.contains(id),
+              let pid = info[kCGWindowOwnerPID as String] as? pid_t, appPIDs.contains(pid),
+              info[kCGWindowLayer as String] as? Int == 0,
+              (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+              let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+              let rect = CGRect(dictionaryRepresentation: bounds)
+        else { return false }
+        return rect.width >= 200 && rect.height >= 150
+    }
+
     /// Brings a window to the front and gives it keyboard focus.
     static func focus(_ item: WindowItem) {
         if let window = item.localWindow {
@@ -153,20 +237,22 @@ enum WindowSource {
             window.makeKeyAndOrderFront(nil)
             return
         }
-        guard let element = item.element else { return }
-        if item.isMinimized {
+        if item.isMinimized, let element = item.element {
             AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
 
         var psn = ProcessSerialNumber()
         if let getPSN = Private.getPSN, let setFront = Private.setFront, getPSN(item.pid, &psn) == noErr {
             // 0x200 = user-generated activation, so macOS honours it from a background app.
+            // Passing the window also moves to its Space, which is how full-screen windows come forward.
             _ = setFront(&psn, item.id, 0x200)
             makeKey(&psn, item.id)
         } else {
             NSRunningApplication(processIdentifier: item.pid)?.activate()
         }
-        AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+        if let element = item.element {
+            AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+        }
     }
 
     /// Window-server event pair that makes one specific window key (same trick as yabai/AltTab).
@@ -186,11 +272,9 @@ enum WindowSource {
     }
 
     /// Position and size of every window, minimized and off-screen ones included.
-    private static func windowFrames() -> [CGWindowID: CGRect] {
-        let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
-            as? [[String: Any]] ?? []
+    private static func windowFrames(in snapshot: [[String: Any]]) -> [CGWindowID: CGRect] {
         var frames: [CGWindowID: CGRect] = [:]
-        for info in list {
+        for info in snapshot {
             guard let number = info[kCGWindowNumber as String] as? CGWindowID,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: dict),
