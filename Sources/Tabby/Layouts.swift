@@ -276,7 +276,7 @@ struct DeckLayout: View {
         let radius = card.height * (pivot - 0.5)
         let maxAngle = spread * middle * .pi / 180
         let lift = card.height * 0.5
-        let drop = radius * (1 - cos(maxAngle)) + card.width / 2 * sin(maxAngle)
+        let drop = radius * (1 - cos(maxAngle)) + card.width / 2 * sin(maxAngle) + card.height * 0.2
         let halfWidth = radius * sin(maxAngle) + card.width * 0.6
 
         VStack(spacing: 18 * s) {
