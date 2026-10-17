@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Full-screen windows (the green button, like a maximised stream) now show up in the switcher, and switching to one jumps to its Space.
+
 ## 0.2.0
 
 - The selected window's real position on screen is outlined and left undimmed while you tab. Turn it off in Settings → Layout.
