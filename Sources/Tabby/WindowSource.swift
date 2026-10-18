@@ -303,6 +303,51 @@ enum WindowSource {
         if let element {
             AXUIElementSetAttributeValue(element, kAXMainAttribute as CFString, kCFBooleanTrue)
             AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+            if item.element == nil {
+                bounceFullScreenIfNeeded(item, element: element)
+            }
+        }
+    }
+
+    /// macOS won't move to a full-screen Space while the same app has a window on the current
+    /// Space. If the window still isn't showing shortly after the switch, take it out of full
+    /// screen (it lands on this desktop), bring it forward, and put it back: entering full screen
+    /// always moves you to it.
+    private static func bounceFullScreenIfNeeded(_ item: WindowItem, element: AXUIElement) {
+        let fullScreenAttribute = "AXFullScreen" as CFString
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.25) {
+            var value: CFTypeRef?
+            guard !isOnScreen(item.id),
+                  AXUIElementCopyAttributeValue(element, fullScreenAttribute, &value) == .success,
+                  value as? Bool == true
+            else { return }
+
+            AXUIElementSetAttributeValue(element, fullScreenAttribute, kCFBooleanFalse)
+            waitUntil { isOnScreen(item.id) && !isFullScreen(element) }
+            // Let the exit animation finish; a request made during it is silently ignored.
+            usleep(500_000)
+            AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+            for _ in 0..<3 where !isFullScreen(element) {
+                AXUIElementSetAttributeValue(element, fullScreenAttribute, kCFBooleanTrue)
+                waitUntil { isFullScreen(element) }
+            }
+        }
+    }
+
+    private static func isFullScreen(_ element: AXUIElement) -> Bool {
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(element, "AXFullScreen" as CFString, &value) == .success && value as? Bool == true
+    }
+
+    private static func isOnScreen(_ windowID: CGWindowID) -> Bool {
+        onScreenWindowIDs().contains(windowID)
+    }
+
+    /// Polls for up to two seconds; full-screen animations take about 0.6 s.
+    private static func waitUntil(_ condition: () -> Bool) {
+        let deadline = Date().addingTimeInterval(2)
+        while Date() < deadline && !condition() {
+            usleep(50_000)
         }
     }
 
