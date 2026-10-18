@@ -63,11 +63,22 @@ While the switcher is open: ⇧ goes backwards, arrow keys move, esc cancels, an
 | --- | --- |
 | **Download** | 1.3 MB zipped |
 | **App** | 3.9 MB, universal (Intel + Apple Silicon) |
-| **Memory, idle** | ~40 MB |
-| **Memory, after switching** | ~60 MB, including cached thumbnails |
+| **Memory, idle** | ~15 MB |
+| **Memory, after switching** | ~36 MB, including cached thumbnails |
 | **Dependencies** | None. Only Apple frameworks. |
 
 Measured on Apple Silicon with macOS 26, using `footprint`.
+
+### Next to AltTab
+
+Both apps on the same Mac, same windows, same five ⌥Tab presses, one app running at a time:
+
+| | Tabby 0.2.3 | AltTab 11.9 |
+| --- | --- | --- |
+| **Memory, idle** | 15 MB | 54 MB |
+| **Memory, after five switches** | 36 MB | 82 MB |
+| **Highest during those switches** | 47 MB | 183 MB |
+| **App size** | 3.9 MB | 13 MB |
 
 ## How it compares
 
