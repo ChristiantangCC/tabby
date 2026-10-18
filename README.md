@@ -90,11 +90,9 @@ Prices and versions are from each developer's site, October 2026. App sizes are 
 - Thumbnails come from ScreenCaptureKit, captured only as large as the layout draws them.
 - A window is focused with the same window-server calls AltTab and yabai use, so the exact window comes forward, not just its app.
 
-Tabby shows windows on the current Space plus full-screen windows; other desktops are left out on purpose.
+Tabby shows windows on the current Space plus full-screen windows. From inside a full-screen app it also shows the desktop behind it on that screen. Other desktops are left out on purpose.
 
-### Known limitation
-
-Switching to a full-screen window doesn't work when the **same app** also has a window on your current Space. For example: a normal Chrome window next to a full-screen Chrome stream. macOS only moves to a full-screen Space when the app has no window where you are, and it ignores every supported way of asking otherwise. Switching *from* the full-screen window back works, and so does switching to a full-screen window of any other app.
+Switching to a full-screen window is instant, with one exception. macOS refuses to move to a full-screen Space while the **same app** also has a window on your current Space, for example a normal Chrome window next to a full-screen Chrome stream. In that case Tabby briefly takes the window out of full screen and puts it straight back, which lands you on it about a second later.
 
 ## Development
 
