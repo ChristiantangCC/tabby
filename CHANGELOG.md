@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.3
 
-- Switching to full-screen windows of apps like Chrome is more reliable: Tabby now finds their window anywhere in the app, not just among the first few.
-- Documented the one case macOS won't allow: switching to a full-screen window while the same app has a window on your current Space.
+- Switching to a full-screen window now also works when the same app has a window on your current Space (like normal Chrome next to a full-screen Chrome stream). Tabby briefly takes the window out of full screen and puts it back.
+- From inside a full-screen app, windows on the desktop behind it (like Claude next to the full-screen stream) now show up in the switcher.
+- Windows an app still reports after closing them no longer show up as empty tiles.
+- Full-screen windows of apps like Chrome are found more reliably.
 
 ## 0.2.2
 
