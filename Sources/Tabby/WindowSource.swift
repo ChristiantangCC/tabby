@@ -53,20 +53,33 @@ private enum Private {
 }
 
 /// Full-screen windows live on their own Space, where Accessibility can't see them.
-private enum FullScreenSpaces {
+enum FullScreenSpaces {
     /// Space type the window server uses for a full-screen (or Split View) Space.
     private static let fullScreenType = 4
     /// All Spaces, not just the current one.
     private static let allSpacesMask: Int32 = 7
 
-    static func ids() -> Set<Int> {
+    /// Spaces whose windows Accessibility misses: every full-screen Space, plus, for a screen
+    /// that's currently showing a full-screen Space, the desktop behind it (Accessibility only
+    /// lists the Space on screen, so from inside full screen those windows would vanish).
+    static func extraSpaceIDs() -> Set<Int> {
         guard let connection = Private.mainConnection?(),
               let displays = Private.copyDisplaySpaces?(connection)?.takeRetainedValue() as? [[String: Any]]
         else { return [] }
+        return extraSpaceIDs(displays: displays)
+    }
+
+    /// The pure part of `extraSpaceIDs()`, fed the window server's display/Space description.
+    static func extraSpaceIDs(displays: [[String: Any]]) -> Set<Int> {
         var ids = Set<Int>()
         for display in displays {
-            for space in display["Spaces"] as? [[String: Any]] ?? [] where space["type"] as? Int == fullScreenType {
-                if let id = space["ManagedSpaceID"] as? Int { ids.insert(id) }
+            let spaces = display["Spaces"] as? [[String: Any]] ?? []
+            let fullScreen = spaces.filter { $0["type"] as? Int == fullScreenType }.compactMap { $0["ManagedSpaceID"] as? Int }
+            ids.formUnion(fullScreen)
+
+            let current = (display["Current Space"] as? [String: Any])?["ManagedSpaceID"] as? Int
+            if let current, fullScreen.contains(current) {
+                ids.formUnion(spaces.filter { $0["type"] as? Int != fullScreenType }.compactMap { $0["ManagedSpaceID"] as? Int })
             }
         }
         return ids
@@ -130,7 +143,10 @@ enum WindowSource {
 
         let snapshot = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] ?? []
-        items += fullScreenWindows(in: snapshot, excluding: Set(items.map(\.id)))
+        // Accessibility sometimes still lists windows that are gone; keep only real ones.
+        let existing = Set(snapshot.compactMap { $0[kCGWindowNumber as String] as? CGWindowID })
+        items = items.filter { $0.localWindow != nil || existing.contains($0.id) }
+        items += otherSpaceWindows(in: snapshot, excluding: Set(items.map(\.id)))
 
         let frames = windowFrames(in: snapshot)
         for index in items.indices {
@@ -214,9 +230,10 @@ enum WindowSource {
         }
     }
 
-    /// Windows sitting on full-screen Spaces, which the Accessibility listing misses.
-    private static func fullScreenWindows(in snapshot: [[String: Any]], excluding known: Set<CGWindowID>) -> [WindowItem] {
-        let spaceIDs = FullScreenSpaces.ids()
+    /// Windows on full-screen Spaces (and, from inside full screen, the desktop behind it),
+    /// which the Accessibility listing misses.
+    private static func otherSpaceWindows(in snapshot: [[String: Any]], excluding known: Set<CGWindowID>) -> [WindowItem] {
+        let spaceIDs = FullScreenSpaces.extraSpaceIDs()
         guard !spaceIDs.isEmpty else { return [] }
         let me = getpid()
         let apps = Dictionary(
