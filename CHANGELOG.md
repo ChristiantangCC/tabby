@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- Close a window straight from the switcher: hover a tile (or select it) and click the × in its corner. The switcher stays open on the rest.
+
 ## 0.2.3
 
 - Switching to a full-screen window now also works when the same app has a window on your current Space (like normal Chrome next to a full-screen Chrome stream). Tabby briefly takes the window out of full screen and puts it back.
