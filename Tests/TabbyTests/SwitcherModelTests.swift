@@ -51,4 +51,26 @@ struct SwitcherModelTests {
         model.select(9)
         #expect(model.selected == 1)
     }
+
+    @Test("Closing a window before the selection keeps the same window selected")
+    func removeBeforeSelection() {
+        let model = model(count: 4, selected: 2)
+        model.remove(1)
+        #expect(model.items.count == 3)
+        #expect(model.current?.id == 3)
+    }
+
+    @Test("Closing the selected window selects the next one")
+    func removeSelected() {
+        let model = model(count: 4, selected: 1)
+        model.remove(2)
+        #expect(model.current?.id == 3)
+    }
+
+    @Test("Closing the selected last window selects the new last one")
+    func removeSelectedLast() {
+        let model = model(count: 3, selected: 2)
+        model.remove(3)
+        #expect(model.current?.id == 2)
+    }
 }

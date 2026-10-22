@@ -39,6 +39,17 @@ final class SwitcherModel: ObservableObject {
         selected = index
         spin += Double(delta)
     }
+
+    /// Drops a closed window, keeping the selection on the same neighbour.
+    func remove(_ id: CGWindowID) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items.remove(at: index)
+        thumbs[id] = nil
+        if index < selected || selected >= items.count {
+            selected = max(selected - 1, 0)
+            spin -= 1
+        }
+    }
 }
 
 /// Owns the overlay panel and the open → cycle → commit lifecycle.
@@ -76,6 +87,7 @@ final class SwitcherController {
             },
             onDismiss: { [weak self] in self?.cancel() }
         )
+        .environment(\.closeWindow, { [weak self] item in self?.closeWindow(item) })
         let host = NSHostingView(rootView: root)
         // Keep the panel exactly screen-sized; don't let SwiftUI resize it.
         host.sizingOptions = []
@@ -177,6 +189,18 @@ final class SwitcherController {
 
     func cancel() {
         close()
+    }
+
+    /// Closes one window from its tile; the switcher stays open on the rest.
+    func closeWindow(_ item: WindowItem) {
+        guard isActive else { return }
+        if !isPreview {
+            WindowSource.close(item)
+        }
+        withAnimation(SwitchSpeed.current.spring(0.3, 0.86)) {
+            model.remove(item.id)
+        }
+        if model.items.isEmpty { cancel() }
     }
 
     private func show() {

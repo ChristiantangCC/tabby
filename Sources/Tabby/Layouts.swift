@@ -143,6 +143,7 @@ private struct GridTile: View {
         VStack(spacing: 8 * s) {
             ZStack(alignment: .bottomLeading) {
                 Thumb(item: item, image: image, size: thumbSize, corner: 9 * s)
+                    .modifier(CloseBadge(item: item, selected: selected, scale: s))
                 Image(nsImage: item.icon)
                     .resizable()
                     .frame(width: 34 * s, height: 34 * s)
@@ -238,6 +239,7 @@ private struct CoverCard: View {
     var body: some View {
         VStack(spacing: 3) {
             Thumb(item: item, image: image, size: size, corner: 8, alignment: .bottom)
+                .modifier(CloseBadge(item: item, selected: selected, scale: theme.size))
             // Mirror reflection on the "floor".
             Thumb(item: item, image: image, size: size, corner: 8, alignment: .bottom, shadow: false)
                 .scaleEffect(x: 1, y: -1)
@@ -336,6 +338,7 @@ private struct DeckCard: View {
         )
         .shadow(color: .black.opacity(0.35), radius: 10, y: 5)
         .modifier(SelectionRing(active: selected, accent: theme.accent, corner: corner))
+        .modifier(CloseBadge(item: item, selected: selected, scale: s))
     }
 }
 
@@ -365,6 +368,7 @@ struct OrbitLayout: View {
                 let selected = index == model.selected
                 Thumb(item: item, image: model.thumbs[item.id], size: satellite, corner: 8 * s,
                       highlight: selected ? theme.accent : nil)
+                    .modifier(CloseBadge(item: item, selected: selected, scale: s))
                     .modifier(OrbitEffect(angle: angle, rx: rx, ry: ry))
                     .opacity(0.45 + 0.55 * (sin(angle) + 1) / 2)
                     .zIndex(sin(angle))
@@ -444,6 +448,7 @@ struct SpotlightLayout: View {
                     let selected = index == model.selected
                     Thumb(item: item, image: model.thumbs[item.id], size: chip, corner: 7 * s, shadow: false,
                           highlight: selected ? theme.accent : nil)
+                        .modifier(CloseBadge(item: item, selected: selected, scale: s))
                         .scaleEffect(selected ? 1.2 : 1, anchor: .bottom)
                         .opacity(selected ? 1 : 0.6)
                         .onTapGesture { onPick(index) }
@@ -483,6 +488,7 @@ struct TimeMachineLayout: View {
                     let d = Double(index - model.selected)
                     Thumb(item: item, image: model.thumbs[item.id], size: card, corner: 12 * s, alignment: .bottom,
                           highlight: d == 0 ? theme.accent : nil)
+                        .modifier(CloseBadge(item: item, selected: d == 0, scale: s))
                         .scaleEffect(d >= 0 ? pow(0.86, d) : 1.3, anchor: .bottom)
                         .offset(y: d >= 0 ? -d * card.height * 0.16 : card.height * 0.6)
                         .opacity(d < 0 ? 0 : max(0, 1 - d * 0.17))

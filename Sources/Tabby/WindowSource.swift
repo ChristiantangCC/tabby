@@ -309,6 +309,23 @@ enum WindowSource {
         }
     }
 
+    /// Closes a window by pressing its own close button, so the app can still ask to save.
+    static func close(_ item: WindowItem) {
+        if let window = item.localWindow {
+            window.performClose(nil)
+            return
+        }
+        // Finding a full-screen window's handle can take a moment; keep it off the main thread.
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let element = item.element ?? remoteElement(forWindow: item.id, pid: item.pid) else { return }
+            var button: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXCloseButtonAttribute as CFString, &button) == .success,
+               let button, CFGetTypeID(button) == AXUIElementGetTypeID() {
+                AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString)
+            }
+        }
+    }
+
     /// macOS won't move to a full-screen Space while the same app has a window on the current
     /// Space. If the window still isn't showing shortly after the switch, take it out of full
     /// screen (it lands on this desktop), bring it forward, and put it back: entering full screen

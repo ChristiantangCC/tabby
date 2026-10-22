@@ -188,6 +188,53 @@ struct Thumb: View {
     }
 }
 
+private struct CloseWindowKey: EnvironmentKey {
+    static let defaultValue: ((WindowItem) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Closes a window from its tile; nil where tiles can't close windows.
+    var closeWindow: ((WindowItem) -> Void)? {
+        get { self[CloseWindowKey.self] }
+        set { self[CloseWindowKey.self] = newValue }
+    }
+}
+
+/// × in a tile's top-left corner, shown on the selected or hovered tile.
+struct CloseBadge: ViewModifier {
+    let item: WindowItem
+    let selected: Bool
+    var scale: CGFloat = 1
+
+    @Environment(\.closeWindow) private var closeWindow
+    @State private var hovering = false
+    @State private var hoveringButton = false
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .topLeading) {
+                if let closeWindow, selected || hovering {
+                    Button { closeWindow(item) } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10 * scale, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 22 * scale, height: 22 * scale)
+                            .background(Circle().fill(hoveringButton ? Color.red : Color.black.opacity(0.65)))
+                            .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { hoveringButton = $0 }
+                    .offset(x: -6 * scale, y: -6 * scale)
+                    .help("Close window")
+                    .transition(.opacity)
+                }
+            }
+            .onHover { hovering = $0 }
+    }
+}
+
 /// Selection glow shared by several layouts.
 struct SelectionRing: ViewModifier {
     let active: Bool
