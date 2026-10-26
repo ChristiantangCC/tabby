@@ -195,7 +195,7 @@ final class SwitcherController {
     func closeWindow(_ item: WindowItem) {
         guard isActive else { return }
         if !isPreview {
-            WindowSource.close(item)
+            WindowSource.close(item, isLastOfApp: model.items.filter { $0.pid == item.pid }.count == 1)
         }
         withAnimation(SwitchSpeed.current.spring(0.3, 0.86)) {
             model.remove(item.id)

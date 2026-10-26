@@ -310,20 +310,39 @@ enum WindowSource {
     }
 
     /// Closes a window by pressing its own close button, so the app can still ask to save.
-    static func close(_ item: WindowItem) {
+    /// For an app's last window, apps that only hide instead of closing (like Discord) are quit.
+    static func close(_ item: WindowItem, isLastOfApp: Bool) {
         if let window = item.localWindow {
             window.performClose(nil)
             return
         }
         // Finding a full-screen window's handle can take a moment; keep it off the main thread.
         DispatchQueue.global(qos: .userInitiated).async {
-            guard let element = item.element ?? remoteElement(forWindow: item.id, pid: item.pid) else { return }
+            let element = item.element ?? remoteElement(forWindow: item.id, pid: item.pid)
             var button: CFTypeRef?
-            if AXUIElementCopyAttributeValue(element, kAXCloseButtonAttribute as CFString, &button) == .success,
+            if let element,
+               AXUIElementCopyAttributeValue(element, kAXCloseButtonAttribute as CFString, &button) == .success,
                let button, CFGetTypeID(button) == AXUIElementGetTypeID() {
                 AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString)
             }
+            guard isLastOfApp, let app = NSRunningApplication(processIdentifier: item.pid) else { return }
+            waitUntil { !windowExists(item.id) || app.isHidden }
+            // Still there (or hidden away) and not asking to save: the close didn't take.
+            if !app.isTerminated, windowExists(item.id) || app.isHidden, !(element.map(hasSheet) ?? false) {
+                app.terminate()
+            }
         }
+    }
+
+    private static func windowExists(_ windowID: CGWindowID) -> Bool {
+        let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID) as? [[String: Any]] ?? []
+        return list.contains { $0[kCGWindowNumber as String] as? CGWindowID == windowID }
+    }
+
+    /// A save prompt or similar sheet is open on the window.
+    private static func hasSheet(_ element: AXUIElement) -> Bool {
+        guard let children: [AXUIElement] = attribute(element, kAXChildrenAttribute) else { return false }
+        return children.contains { (attribute($0, kAXRoleAttribute) as String?) == kAXSheetRole }
     }
 
     /// macOS won't move to a full-screen Space while the same app has a window on the current
