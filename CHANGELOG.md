@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- Closing an app's last window from the switcher now quits apps that only hide themselves when closed (like Discord), so they don't keep showing up.
+
 ## 0.2.4
 
 - Close a window straight from the switcher: hover a tile (or select it) and click the × in its corner. The switcher stays open on the rest.
