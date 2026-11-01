@@ -319,6 +319,7 @@ enum WindowSource {
         // Finding a full-screen window's handle can take a moment; keep it off the main thread.
         DispatchQueue.global(qos: .userInitiated).async {
             let element = item.element ?? remoteElement(forWindow: item.id, pid: item.pid)
+            let wasOnScreen = isOnScreen(item.id)
             var button: CFTypeRef?
             if let element,
                AXUIElementCopyAttributeValue(element, kAXCloseButtonAttribute as CFString, &button) == .success,
@@ -326,7 +327,11 @@ enum WindowSource {
                 AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString)
             }
             guard isLastOfApp, let app = NSRunningApplication(processIdentifier: item.pid) else { return }
-            waitUntil { !windowExists(item.id) || app.isHidden }
+            // A closed window is gone right after it leaves the screen; one the app only hid stays.
+            waitUntil { !windowExists(item.id) || app.isHidden || (wasOnScreen && !isOnScreen(item.id)) }
+            if !app.isHidden, windowExists(item.id) {
+                waitUntil(seconds: 0.25) { !windowExists(item.id) }
+            }
             // Still there (or hidden away) and not asking to save: the close didn't take.
             if !app.isTerminated, windowExists(item.id) || app.isHidden, !(element.map(hasSheet) ?? false) {
                 app.terminate()
@@ -334,8 +339,12 @@ enum WindowSource {
         }
     }
 
+    /// Also true for a window the app only hid (like Claude), which the window-list
+    /// options leave out once it's off screen.
     private static func windowExists(_ windowID: CGWindowID) -> Bool {
-        let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID) as? [[String: Any]] ?? []
+        var value = UnsafeRawPointer(bitPattern: UInt(windowID))
+        guard let ids = CFArrayCreate(nil, &value, 1, nil) else { return false }
+        let list = CGWindowListCreateDescriptionFromArray(ids) as? [[String: Any]] ?? []
         return list.contains { $0[kCGWindowNumber as String] as? CGWindowID == windowID }
     }
 
@@ -379,9 +388,9 @@ enum WindowSource {
         onScreenWindowIDs().contains(windowID)
     }
 
-    /// Polls for up to two seconds; full-screen animations take about 0.6 s.
-    private static func waitUntil(_ condition: () -> Bool) {
-        let deadline = Date().addingTimeInterval(2)
+    /// Polls for up to two seconds by default; full-screen animations take about 0.6 s.
+    private static func waitUntil(seconds: TimeInterval = 2, _ condition: () -> Bool) {
+        let deadline = Date().addingTimeInterval(seconds)
         while Date() < deadline && !condition() {
             usleep(50_000)
         }
