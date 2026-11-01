@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- Closing an app's last window from the switcher now also quits apps that hide that window instead of closing it (like Claude), and does so in about a quarter of a second instead of two.
+
 ## 0.2.5
 
 - Closing an app's last window from the switcher now quits apps that only hide themselves when closed (like Discord), so they don't keep showing up.
